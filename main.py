@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, render_template, request
 from flask_sqlalchemy import SQLAlchemy
+from random import randint
 
 app = Flask(__name__)
 
@@ -27,6 +28,26 @@ class Cafe(db.Model):
 @app.route("/")
 def home():
     return render_template("index.html")
+
+@app.route("/random")
+def random():
+    num_rows = db.session.query(Cafe).count()
+    rand_id = randint(1, num_rows)
+    cafe = db.session.get(Cafe, rand_id)
+
+    response = jsonify(id=cafe.id,
+                       name=cafe.name,
+                       map_url=cafe.map_url,
+                       img_url=cafe.img_url,
+                       location=cafe.location,
+                       seats=cafe.seats,
+                       has_toilet=cafe.has_toilet,
+                       has_wifi=cafe.has_wifi,
+                       has_sockets=cafe.has_sockets,
+                       can_take_calls=cafe.can_take_calls,
+                       coffee_price=cafe.coffee_price)
+
+    return response
     
 
 ## HTTP GET - Read Record
