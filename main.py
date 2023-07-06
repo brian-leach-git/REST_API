@@ -29,6 +29,7 @@ class Cafe(db.Model):
 def home():
     return render_template("index.html")
 
+
 @app.route("/random")
 def random():
     num_rows = db.session.query(Cafe).count()
@@ -46,6 +47,22 @@ def random():
                        has_sockets=cafe.has_sockets,
                        can_take_calls=cafe.can_take_calls,
                        coffee_price=cafe.coffee_price)
+
+    return response
+
+
+@app.route("/all")
+def all_cafes():
+    all_records = db.session.query(Cafe).all()
+    lst = []
+
+    for i in all_records:
+        dct = i.__dict__
+        del dct['_sa_instance_state']
+        lst.append(dct)
+
+    jsn = {'cafes': lst}
+    response = jsonify(jsn)
 
     return response
     
