@@ -61,17 +61,69 @@ def all_cafes():
         del dct['_sa_instance_state']
         lst.append(dct)
 
-    jsn = {'cafes': lst}
-    response = jsonify(jsn)
+    response = jsonify(cafes=lst)
 
     return response
-    
+
 
 ## HTTP GET - Read Record
+@app.route('/search')
+def search():
+    loc = request.args.get('loc')
+    cafe = db.session.query(Cafe).filter(Cafe.location == loc).first()
+
+    if cafe:
+        cafe = cafe.__dict__
+        del cafe['_sa_instance_state']
+
+        response = jsonify(cafe)
+
+        return response
+    else:
+        response = {
+            "error": {
+                "Not Found": "Sorry, we don't have a cafe at that location."
+            }
+        }
+
+    return response
+
 
 ## HTTP POST - Create Record
+@app.route('/add', methods=['GET', 'POST'])
+def add():
+    if request.method == 'POST':
+
+        new_cafe = Cafe(
+            name=request.form.get("name"),
+            map_url=request.form.get("map_url"),
+            img_url=request.form.get("img_url"),
+            location=request.form.get("loc"),
+            has_sockets=bool(request.form.get("sockets")),
+            has_toilet=bool(request.form.get("toilet")),
+            has_wifi=bool(request.form.get("wifi")),
+            can_take_calls=bool(request.form.get("calls")),
+            seats=request.form.get("seats"),
+            coffee_price=request.form.get("coffee_price"),
+        )
+
+        db.session.add(new_cafe)
+        db.session.commit()
+
+        return jsonify(response={"success": "Successfully added the new cafe."})
+
+    else:
+        return {'get': 'you used a get request'}
+
 
 ## HTTP PUT/PATCH - Update Record
+@app.route('/update-price/<cafe_id>', methods=['PUT', 'PATCH'])
+def update_price(cafe_id):
+    new_price = request.args.get('new_price')
+    cafe = db.session.get(Cafe, cafe_id)
+
+
+
 
 ## HTTP DELETE - Delete Record
 
