@@ -5,8 +5,8 @@ from random import randint
 app = Flask(__name__)
 
 ##Connect to Database
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cafes.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///cafes.db"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
 
 
@@ -36,17 +36,19 @@ def random():
     rand_id = randint(1, num_rows)
     cafe = db.session.get(Cafe, rand_id)
 
-    response = jsonify(id=cafe.id,
-                       name=cafe.name,
-                       map_url=cafe.map_url,
-                       img_url=cafe.img_url,
-                       location=cafe.location,
-                       seats=cafe.seats,
-                       has_toilet=cafe.has_toilet,
-                       has_wifi=cafe.has_wifi,
-                       has_sockets=cafe.has_sockets,
-                       can_take_calls=cafe.can_take_calls,
-                       coffee_price=cafe.coffee_price)
+    response = jsonify(
+        id=cafe.id,
+        name=cafe.name,
+        map_url=cafe.map_url,
+        img_url=cafe.img_url,
+        location=cafe.location,
+        seats=cafe.seats,
+        has_toilet=cafe.has_toilet,
+        has_wifi=cafe.has_wifi,
+        has_sockets=cafe.has_sockets,
+        can_take_calls=cafe.can_take_calls,
+        coffee_price=cafe.coffee_price,
+    )
 
     return response
 
@@ -58,7 +60,7 @@ def all_cafes():
 
     for i in all_records:
         dct = i.__dict__
-        del dct['_sa_instance_state']
+        del dct["_sa_instance_state"]
         lst.append(dct)
 
     response = jsonify(cafes=lst)
@@ -67,33 +69,32 @@ def all_cafes():
 
 
 ## HTTP GET - Read Record
-@app.route('/search')
+@app.route("/search")
 def search():
-    loc = request.args.get('loc')
+    loc = request.args.get("loc")
     cafe = db.session.query(Cafe).filter(Cafe.location == loc).first()
 
     if cafe:
         cafe = cafe.__dict__
-        del cafe['_sa_instance_state']
+        del cafe["_sa_instance_state"]
 
-        response = jsonify(cafe)
+        response = jsonify(cafe), 200
 
         return response
-    else:
-        response = {
-            "error": {
-                "Not Found": "Sorry, we don't have a cafe at that location."
-            }
-        }
 
-    return response
+    else:
+        return (
+            jsonify(
+                error={"Not Found": "Sorry, we don't have a cafe at that location."}
+            ),
+            404,
+        )
 
 
 ## HTTP POST - Create Record
-@app.route('/add', methods=['GET', 'POST'])
+@app.route("/add", methods=["GET", "POST"])
 def add():
-    if request.method == 'POST':
-
+    if request.method == "POST":
         new_cafe = Cafe(
             name=request.form.get("name"),
             map_url=request.form.get("map_url"),
@@ -110,23 +111,37 @@ def add():
         db.session.add(new_cafe)
         db.session.commit()
 
-        return jsonify(response={"success": "Successfully added the new cafe."})
+        return jsonify(response={"success": "Successfully added the new cafe."}), 200
 
     else:
-        return {'get': 'you used a get request'}
+        return {"get": "you used a get request"}
 
 
 ## HTTP PUT/PATCH - Update Record
-@app.route('/update-price/<cafe_id>', methods=['PUT', 'PATCH'])
+@app.route("/update-price/<cafe_id>", methods=["PUT", "PATCH"])
 def update_price(cafe_id):
-    new_price = request.args.get('new_price')
-    cafe = db.session.get(Cafe, cafe_id)
+    new_price = request.args.get("new_price")
+    cafe = db.session.get(Cafe, int(cafe_id))
 
+    if not cafe:
+        return (
+            jsonify(
+                error={"Not Found": "No cafe with that ID was found in the database."}
+            ),
+            404,
+        )
 
+    cafe.coffee_price = float(new_price)
+    db.session.commit()
+
+    return jsonify(success={"Cafe Added": "Successfully updated the price."}), 200
 
 
 ## HTTP DELETE - Delete Record
+@app.route("/delete")
+def delete():
+    pass
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.run(debug=True)
