@@ -65,7 +65,7 @@ def all_cafes():
         del dct["_sa_instance_state"]
         lst.append(dct)
 
-    response = jsonify(cafes=lst)
+    response = jsonify(cafes=lst), 200
 
     return response
 
@@ -96,23 +96,46 @@ def search():
 ## HTTP POST - Create Record
 @app.route("/add", methods=["POST"])
 def add():
-    new_cafe = Cafe(
-        name=request.form.get("name"),
-        map_url=request.form.get("map_url"),
-        img_url=request.form.get("img_url"),
-        location=request.form.get("loc"),
-        has_sockets=bool(request.form.get("sockets")),
-        has_toilet=bool(request.form.get("toilet")),
-        has_wifi=bool(request.form.get("wifi")),
-        can_take_calls=bool(request.form.get("calls")),
-        seats=request.form.get("seats"),
-        coffee_price=request.form.get("coffee_price"),
-    )
+    body = request.json
 
-    db.session.add(new_cafe)
-    db.session.commit()
+    # Exit if authentication fails
+    if request.args.get("api-key") != KEY:
+        return (
+            jsonify(
+                error={
+                    "Unauthorized": "Sorry, that's not allowed. Please make sure you have the right API key."
+                }
+            ),
+            401,
+        )
 
-    return jsonify(response={"success": "Successfully added the new cafe."}), 200
+    try:
+        new_cafe = Cafe(
+            name=body["name"],
+            map_url=body["map_url"],
+            img_url=body["img_url"],
+            location=body["loc"],
+            has_sockets=bool(body["sockets"]),
+            has_toilet=bool(body["toilet"]),
+            has_wifi=bool(body["wifi"]),
+            can_take_calls=bool(body["calls"]),
+            seats=body["seats"],
+            coffee_price=body["coffee_price"],
+        )
+
+        db.session.add(new_cafe)
+        db.session.commit()
+
+    except Exception:
+        return (
+            jsonify(
+                Error={"Error": "There was an error with your request to add a cafe"}
+            ),
+            418,
+        )
+
+    else:
+        return jsonify(success={"success": "Successfully added the new cafe."}), 200
 
 
 # HTTP PUT/PATCH - Update Record
@@ -132,33 +155,44 @@ def update_price(cafe_id):
     cafe.coffee_price = float(new_price)
     db.session.commit()
 
-    return jsonify(success={"Cafe Added": "Successfully updated the price."}), 200
+    return (jsonify(success={"Cafe Added": "Successfully updated the price."}), 200)
 
 
 ## HTTP DELETE - Delete Record
 @app.route("/report-closed/<cafe_id>", methods=["DELETE"])
 def delete(cafe_id):
+    # Send 404 if incorrect authorization
     if request.args.get("api-key") != KEY:
-        return jsonify(
-            error={
-                "Unauthorized": "Sorry, that's not allowed. Please make sure you have the right API key."
-            }
+        return (
+            jsonify(
+                error={
+                    "Unauthorized": "Sorry, that's not allowed. Please make sure you have the right API key."
+                }
+            ),
+            401,
         )
 
-    # if there is no cafe with the requested ID, display error
-    elif not db.session.query(Cafe, int(cafe_id)):
-        return jsonify(
-            error={"Not Found": "No cafe with that ID was found in the database."}
+    # if there is no cafe with the requested ID, return 404
+    elif not db.session.get(Cafe, int(cafe_id)):
+        return (
+            jsonify(
+                error={"Not Found": "No cafe with that ID was found in the database."}
+            ),
+            404,
         )
 
     else:
-        db.session.query(Cafe, int(cafe_id)).delete()
+        cafe = db.session.get(Cafe, int(cafe_id))
+        db.session.delete(cafe)
         db.session.commit()
 
-        return jsonify(
-            success={
-                "Cafe Deleted": "The selected cafe has been removed from the database."
-            }
+        return (
+            jsonify(
+                success={
+                    "Cafe Deleted": "The selected cafe has been removed from the database."
+                }
+            ),
+            200,
         )
 
 
